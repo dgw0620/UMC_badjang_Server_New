@@ -1,3 +1,6 @@
+![image](https://github.com/dgw0620/UMC_badjang_Server_New/assets/105223542/243387b7-f832-4369-8954-e8dfa074d6de)
+![image](https://github.com/dgw0620/UMC_badjang_Server_New/assets/105223542/623e6e39-6a1b-423c-b5f0-fc9b9b4dbdbe)
+
 # 안녕하세요! 장학금 및 지원금 조회 플랫폼, “받장”입니다.
 
 ---
