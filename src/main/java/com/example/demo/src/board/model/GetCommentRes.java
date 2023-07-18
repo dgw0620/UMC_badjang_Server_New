@@ -12,11 +12,14 @@ public class GetCommentRes {
     private int user_idx;
     private int post_idx;
     private String comment_content;
-    private String comment_recommend;
+    private int comment_recommend;
     private String comment_anonymity;
     private String comment_createAt;
     private String comment_updatedAt;
     private String comment_status;
+    private String user_name;
+    private String user_profileimage_url;
+    private int recommend_status;
 
     public GetCommentRes(int comment_idx, String comment_content, String comment_updatedAt) {
         this.comment_idx = comment_idx;

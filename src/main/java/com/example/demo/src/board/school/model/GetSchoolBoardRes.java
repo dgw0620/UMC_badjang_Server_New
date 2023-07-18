@@ -13,6 +13,8 @@ import lombok.Setter;
 public class GetSchoolBoardRes {
     private int post_idx;
     private int user_idx;
+    private String user_name;
+    private String user_profileimage_url;
     private String post_name;
     private String post_content;
     private String post_image;
@@ -23,4 +25,5 @@ public class GetSchoolBoardRes {
     private String post_category;
     private String post_school_name;
     private String post_createAt;
+    private int recommend_check;
 }

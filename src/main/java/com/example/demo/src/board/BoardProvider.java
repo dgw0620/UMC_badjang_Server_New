@@ -32,6 +32,16 @@ public class BoardProvider {
         }
     }
 
+    public List<GetBoardTotal> getBoardTotal() throws BaseException{
+        try{
+            List<GetBoardTotal> getBoardTotalRes = boardDao.getBoardTotal();
+            return getBoardTotalRes;
+        }catch (Exception exception){
+            System.out.println(exception);
+            throw new BaseException(DATABASE_ERROR);
+        }
+    }
+
     public List<GetBoardRes> getBoardDetail(int user_idx, int post_idx) throws BaseException{
         try{
             List<GetBoardRes> getBoardDetailRes = boardDao.getBoardDetail(user_idx, post_idx);
@@ -101,9 +111,9 @@ public class BoardProvider {
         }
     }
 
-    public List<GetBoardRes> deleteBoard(DeleteBoardReq deleteBoardReq) throws BaseException{
+    public List<GetBoardRes> deleteBoard(int user_idx, int post_idx) throws BaseException{
         try{
-            List<GetBoardRes> deleteBoardRes = boardDao.deleteBoard(deleteBoardReq);
+            List<GetBoardRes> deleteBoardRes = boardDao.deleteBoard(user_idx, post_idx);
             return deleteBoardRes;
         }catch (Exception exception) {
             System.out.println(exception);
@@ -133,9 +143,9 @@ public class BoardProvider {
      * 댓글 관련 부분 시작
      */
 
-    public List<GetCommentRes> getComment(int post_idx) throws BaseException {
+    public List<GetCommentRes> getComment(int post_idx, int user_idx) throws BaseException {
         try{
-            List<GetCommentRes> getCommentRes = boardDao.getComment(post_idx);
+            List<GetCommentRes> getCommentRes = boardDao.getComment(post_idx, user_idx);
             return getCommentRes;
         }
         catch (Exception exception) {
@@ -166,9 +176,9 @@ public class BoardProvider {
         }
     }
 
-    public GetCommentRes deleteComment(DeleteCommentReq deleteCommentReq) throws BaseException {
+    public GetCommentRes deleteComment(int user_idx, int comment_idx) throws BaseException {
         try {
-            GetCommentRes deleteCommentRes = boardDao.deleteComment(deleteCommentReq);
+            GetCommentRes deleteCommentRes = boardDao.deleteComment(user_idx, comment_idx);
             return deleteCommentRes;
         }catch (Exception exception){
             System.out.println(exception);

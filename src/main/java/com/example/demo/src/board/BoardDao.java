@@ -16,18 +16,28 @@ public class BoardDao {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
+    /**
+     * 전체게시판 조회
+     */
+
+    public List<GetBoardTotal> getBoardTotal(){
+        String getBoardResQuery = "SELECT DISTINCT post_category, school_name_idx FROM Board ";
+
+        return this.jdbcTemplate.query(getBoardResQuery,
+                (rs, rowNum) -> new GetBoardTotal(
+                        rs.getString("post_category"),
+                        rs.getInt("school_name_idx")));
+    }
+
     /**게시글 작성
      *
      */
     public List<PostBoardRes> postBoard(PostBoardReq postBoardReq){
-        String createBoardQuery = "insert into Board (user_idx, post_category, post_name, post_content, post_image, post_view, " +
-                "                   post_recommend, post_comment, post_createAt, post_updateAt, post_status, post_anonymity) " +
-                "VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,?,?)" ;
-
+        String createBoardQuery = "INSERT INTO Board (user_idx, post_category, post_name, post_content, post_image, post_anonymity, school_name_idx) " +
+                "VALUES (?,?,?,?,?,?,?) " ;
         Object[] createBoardParams = new Object[]{
                 postBoardReq.getUser_idx(), postBoardReq.getPost_category(), postBoardReq.getPost_name(), postBoardReq.getPost_content(),
-                postBoardReq.getPost_image(), postBoardReq.getPost_view(), postBoardReq.getPost_recommend(),
-                postBoardReq.getPost_comment(), postBoardReq.getPost_status(), postBoardReq.getPost_anonymity()
+                postBoardReq.getPost_image(), postBoardReq.getPost_anonymity(), postBoardReq.getSchool_name_idx()
         };
         this.jdbcTemplate.update(createBoardQuery, createBoardParams);
 
@@ -47,10 +57,16 @@ public class BoardDao {
      *
      */
     public List<GetBoardRes> getBoard(int user_idx){
-        String getBoardResQuery = "SELECT * ,(select exists(select post_idx, user_idx from Bookmark " +
-                "where post_idx = Board.post_idx " +
-                "and user_idx = ?)) " +
-                "as post_bookmark FROM Board " ;
+        String getBoardResQuery = "SELECT post_idx, U.user_idx, post_name, post_content, post_image, post_view, post_recommend, post_comment, post_createAt, " +
+                "post_updateAt, post_status, post_anonymity, " +
+                "post_category, school_name_idx, user_profileimage_url,IF(post_anonymity = 'Y', user_name = null, user_name) as user_name, " +
+                "(select exists(select post_idx, user_idx from Bookmark where post_idx = Board.post_idx and U.user_idx = ?)) " +
+                "as post_bookmark, " +
+                "(select exists(select post_idx, user_idx from Board_Recommend where post_idx = Board.post_idx and U.user_idx = ?)) " +
+                "as recommend_status, " +
+                "(select count(post_idx) from Bookmark where Board.post_idx = Bookmark.post_idx) as bookmark_count FROM Board " +
+                "left join User U on U.user_name= user_name and U.user_profileimage_url = user_profileimage_url " +
+                "and U.user_idx = Board.user_idx where post_category = '자유게시판' ";
 
         return this.jdbcTemplate.query(getBoardResQuery,
                 (rs, rowNum) -> new GetBoardRes(
@@ -68,7 +84,11 @@ public class BoardDao {
                         rs.getString("post_status"),
                         rs.getString("post_anonymity"),
                         rs.getInt("school_name_idx"),
-                        rs.getInt("post_bookmark")),user_idx);
+                        rs.getInt("post_bookmark"),
+                        rs.getInt("recommend_status"),
+                        rs.getString("user_name"),
+                        rs.getString("user_profileimage_url"),
+                        rs.getInt("bookmark_count")), user_idx, user_idx);
     }
 
     /**게시글 수정
@@ -76,11 +96,11 @@ public class BoardDao {
      */
     public List<GetBoardRes> patchBoard(PatchBoardReq patchBoardReq){
         String createBoardQuery = "UPDATE Board set post_category = ? , post_name = ? , post_content = ? , post_image = ? , " +
-                "post_updateAt = CURRENT_TIMESTAMP where post_idx = ? and user_idx = ?" ;
+                "post_updateAt = CURRENT_TIMESTAMP , post_anonymity = ? where post_idx = ? and user_idx = ?" ;
 
         Object[] createParams = new Object[]{
                 patchBoardReq.getPost_category(), patchBoardReq.getPost_name(), patchBoardReq.getPost_content(),
-                patchBoardReq.getPost_image(), patchBoardReq.getPost_idx(), patchBoardReq.getUser_idx()
+                patchBoardReq.getPost_image(), patchBoardReq.getPost_idx(), patchBoardReq.getUser_idx(), patchBoardReq.getAnonymity()
         };
 
         this.jdbcTemplate.update(createBoardQuery, createParams);
@@ -90,11 +110,11 @@ public class BoardDao {
     /**게시글 삭제
      *
      */
-    public List<GetBoardRes> deleteBoard(DeleteBoardReq deleteBoardReq){
+    public List<GetBoardRes> deleteBoard(int user_idx, int post_idx){
         String deleteBoardQuery = "DELETE from Board where post_idx = ? and user_idx = ?" ;
 
         Object[] deleteParam = new Object[]{
-                deleteBoardReq.getPost_idx(), deleteBoardReq.getUser_idx()
+                post_idx, user_idx
         };
         this.jdbcTemplate.update(deleteBoardQuery, deleteParam);
         return null;
@@ -113,10 +133,17 @@ public class BoardDao {
     }
 
     public List<GetBoardRes> getBoardDetail(int user_idx, int post_idx){
-        String getBoardQuery = "SELECT * ,(select exists(select post_idx, user_idx from Bookmark " +
-                "where post_idx = Board.post_idx " +
-                "and user_idx = ?)) " +
-                "as post_bookmark FROM Board where post_idx = ? " ;
+        String getBoardQuery = "SELECT post_idx, U.user_idx, post_name, post_content, post_image, post_view, post_recommend, post_comment, post_createAt, " +
+                "post_updateAt, post_status, post_anonymity, " +
+                "post_category, school_name_idx, user_profileimage_url,IF(post_anonymity = 'Y', user_name = null, user_name) as user_name, " +
+                "(select exists(select post_idx, user_idx from Bookmark where post_idx = Board.post_idx and U.user_idx = ?)) " +
+                "as post_bookmark, " +
+                "(select exists(select post_idx, user_idx from Board_Recommend where post_idx = Board.post_idx and U.user_idx = ?)) " +
+                "as recommend_status," +
+                "(select count(post_idx) from Bookmark where Board.post_idx = Bookmark.post_idx) as bookmark_count FROM Board " +
+                "left join User U on U.user_name= user_name and U.user_profileimage_url = user_profileimage_url " +
+                "and U.user_idx = Board.user_idx where post_category = '자유게시판' and post_idx = ? " ;
+
 
         return this.jdbcTemplate.query(getBoardQuery, (rs, rowNum) -> new GetBoardRes(
                 rs.getInt("post_idx"),
@@ -133,7 +160,11 @@ public class BoardDao {
                 rs.getString("post_status"),
                 rs.getString("post_anonymity"),
                 rs.getInt("school_name_idx"),
-                rs.getInt("post_bookmark")),user_idx, post_idx);
+                rs.getInt("post_bookmark"),
+                rs.getInt("recommend_status"),
+                rs.getString("user_name"),
+                rs.getString("user_profileimage_url"),
+                rs.getInt("bookmark_count")),user_idx,user_idx, post_idx);
     }
 
     /**게시글 상세조회(댓글수 증감)
@@ -211,15 +242,15 @@ public class BoardDao {
     /**게시글 댓글 조회
      *
      */
-    public List<GetCommentRes> getComment(int post_idx){
+    public List<GetCommentRes> getComment(int post_idx, int user_idx){
         String getCommentQuery = "SELECT comment_idx, User.user_idx, Board.post_idx, comment_content, comment_recommend, " +
-                "comment_anonymity, comment_createAt, comment_updatedAt, comment_status " +
-                "from badjangDB.Comment " +
-                "left join User on User.user_idx = Comment.user_idx " +
+                "comment_anonymity, comment_createAt, comment_updatedAt, comment_status, " +
+                "IF(comment_anonymity = 'Y', user_name = null, user_name) as user_name, user_profileimage_url, " +
+                "(select exists(select comment_idx, user_idx from Comment_Recommend where comment_idx = Comment.comment_idx and User.user_idx = ?)) " +
+                "as recommend_status FROM badjangDB.Comment " +
+                "left join User on User.user_idx = Comment.user_idx and User.user_profileimage_url = user_profileimage_url " +
                 "left join Board on Board.post_idx = Comment.post_idx " +
-                "where Board.post_idx = ? " ;
-
-        int getPostIdx = post_idx;
+                "where Board.post_idx = ? and Board.post_category = '자유게시판' " ;
 
         return this.jdbcTemplate.query(getCommentQuery,
                 (rs, rowNum) -> new GetCommentRes(
@@ -227,25 +258,27 @@ public class BoardDao {
                         rs.getInt("user_idx"),
                         rs.getInt("post_idx"),
                         rs.getString("comment_content"),
-                        rs.getString("comment_recommend"),
+                        rs.getInt("comment_recommend"),
                         rs.getString("comment_anonymity"),
                         rs.getString("comment_createAt"),
                         rs.getString("comment_updatedAt"),
-                        rs.getString("comment_status")
-                ),getPostIdx);
+                        rs.getString("comment_status"),
+                        rs.getString("user_name"),
+                        rs.getString("user_profileimage_url"),
+                        rs.getInt("recommend_status")
+                ),user_idx, post_idx);
     }
 
     /**게시글 댓글 작성
      *
      */
     public PostCommentRes postComment(PostCommentReq postCommentReq){
-        String createCommentQuery = "INSERT INTO Comment (post_idx ,user_idx, comment_content, comment_recommend, comment_anonymity, " +
-                "comment_createAt, comment_updatedAt, comment_status) " +
-                "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)" ;
+        String createCommentQuery = "INSERT INTO Comment (post_idx ,user_idx, comment_content, comment_anonymity) " +
+                "VALUES (?, ?, ?, ?) " ;
 
         Object[] createCommentParams = new Object[]{
                 postCommentReq.getPost_idx(), postCommentReq.getUser_idx(), postCommentReq.getComment_content(),
-                postCommentReq.getComment_recommend(), postCommentReq.getComment_anonymity(), postCommentReq.getComment_status()
+                postCommentReq.getComment_anonymity(),
         };
 
         this.jdbcTemplate.update(createCommentQuery,createCommentParams);
@@ -266,14 +299,14 @@ public class BoardDao {
      */
     public GetCommentRes patchComment(PatchCommentReq patchCommentReq){
         String updateQuery = "UPDATE Comment set comment_content = ? , " +
-                "comment_updatedAt = CURRENT_TIMESTAMP where comment_idx = ? " ;
+                "comment_updatedAt = CURRENT_TIMESTAMP , anonymity = ? where comment_idx = ? " ;
 
         Object[] updateParams = new Object[]{
-                patchCommentReq.getComment_content(), patchCommentReq.getComment_idx()
+                patchCommentReq.getComment_content(), patchCommentReq.getComment_idx(), patchCommentReq.getAnonymity()
         };
 
         this.jdbcTemplate.update(updateQuery, updateParams);
-        String updateResultQuery = "select comment_idx, comment_content, comment_updatedAt " +
+        String updateResultQuery = "select comment_idx, comment_content, comment_updatedAt , comment_anonymity" +
                 "from badjangDB.Comment where comment_idx = ? " ;
 
         Object[] resultParams = new Object[]{
@@ -290,11 +323,11 @@ public class BoardDao {
     /**댓글 삭제
      *
      */
-    public GetCommentRes deleteComment(DeleteCommentReq deleteCommentReq){
-        String deleteQuery = "DELETE from Comment where comment_idx = ? ";
+    public GetCommentRes deleteComment(int user_idx, int comment_idx){
+        String deleteQuery = "DELETE from Comment where user_idx = ? and comment_idx = ? ";
 
         Object[] deleteResult = new Object[]{
-                deleteCommentReq.getComment_idx()
+                user_idx, comment_idx
         };
         this.jdbcTemplate.update(deleteQuery,deleteResult);
         return null;
@@ -349,9 +382,4 @@ public class BoardDao {
         return this.jdbcTemplate.queryForObject(checkRecommend, int.class,
                 postCommentRecommendReq.getComment_idx(), postCommentRecommendReq.getUser_idx());
     }
-
-    /**
-     * 인기글 조회
-     */
-
 }

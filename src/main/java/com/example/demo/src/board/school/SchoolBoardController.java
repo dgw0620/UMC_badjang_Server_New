@@ -34,6 +34,23 @@ public class SchoolBoardController {
     }
 
     /**
+     * 학교 게시판 종류 조회
+     * [GET] /board/school
+     */
+
+    @ResponseBody
+    @GetMapping("/board/school")
+    public BaseResponse<List<GetSchoolBoardNameRes>> getSchoolBoardName() {
+        try {
+            List<GetSchoolBoardNameRes> getSchoolBoardNameRes = schoolBoardProvider.getSchoolBoardName();
+
+            return new BaseResponse<>(getSchoolBoardNameRes);
+        } catch (BaseException exception) {
+            return new BaseResponse<>((exception.getStatus()));
+        }
+    }
+
+    /**
      * 각 학교 게시판 전체 조회
      * [GET] /board/school/:schoolNameIdx
      */
@@ -42,7 +59,8 @@ public class SchoolBoardController {
     @GetMapping("/board/school/{schoolNameIdx}")
     public BaseResponse<List<GetSchoolBoardRes>> getSchoolBoardAll(@PathVariable("schoolNameIdx") int schoolNameIdx) {
         try {
-            List<GetSchoolBoardRes> getSchoolBoardRes = schoolBoardProvider.getSchoolBoard(schoolNameIdx);
+            int userIdx = jwtService.getUserIdx();
+            List<GetSchoolBoardRes> getSchoolBoardRes = schoolBoardProvider.getSchoolBoard(userIdx, schoolNameIdx);
 
             return new BaseResponse<>(getSchoolBoardRes);
         } catch (BaseException exception) {
@@ -60,7 +78,8 @@ public class SchoolBoardController {
     @GetMapping("/board/school/{schoolNameIdx}/{postIdx}")
     public BaseResponse<GetSchoolBoardDetailRes> getOneOfSchoolBoard(@PathVariable("schoolNameIdx") int schoolNameIdx, @PathVariable("postIdx") int postIdx) {
         try {
-            GetSchoolBoardDetailRes getSchoolBoardDetailRes = schoolBoardProvider.getSchoolBoardDetail(schoolNameIdx, postIdx);
+            int userIdx = jwtService.getUserIdx();
+            GetSchoolBoardDetailRes getSchoolBoardDetailRes = schoolBoardProvider.getSchoolBoardDetail(userIdx, postIdx);
 
             return new BaseResponse<>(getSchoolBoardDetailRes);
         } catch (BaseException exception) {
@@ -79,6 +98,22 @@ public class SchoolBoardController {
     public BaseResponse<String> postSchoolBoard(@PathVariable("schoolNameIdx") int schoolNameIdx, @RequestBody PostSchoolBoardReq postSchoolBoardReq) {
         try {
             int userIdx = jwtService.getUserIdx();
+
+            if (postSchoolBoardReq.getPost_name() == null || postSchoolBoardReq.getPost_name().equals("")) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_TITLE_NULL);
+            }
+            if (postSchoolBoardReq.getPost_name().length() > 50) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_TITLE_INVALID);
+            }
+            if (postSchoolBoardReq.getPost_content() == null || postSchoolBoardReq.getPost_content().equals("")) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_CONTENT_NULL);
+            }
+            if (postSchoolBoardReq.getPost_content().length() > 500) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_CONTENT_INVALID);
+            }
+            if (postSchoolBoardReq.getPost_anonymity() == null || postSchoolBoardReq.getPost_anonymity().equals("")) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_ANONYMITY_NULL);
+            }
 
             schoolBoardService.postSchoolBoard(userIdx, schoolNameIdx, postSchoolBoardReq);
 
@@ -100,6 +135,32 @@ public class SchoolBoardController {
     public BaseResponse<String> patchSchoolBoard(@PathVariable("schoolNameIdx") int schoolNameIdx, @PathVariable("postIdx") int postIdx, @RequestBody PatchSchoolBoardReq patchSchoolBoardReq) {
         try {
             int userIdx = jwtService.getUserIdx();
+
+            if (patchSchoolBoardReq.getPost_name() != null) {
+                if (patchSchoolBoardReq.getPost_name().length() > 50) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_TITLE_INVALID);
+                }
+                if (patchSchoolBoardReq.getPost_name().equals("")) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_TITLE_NULL);
+                }
+            }
+
+            if (patchSchoolBoardReq.getPost_content() != null) {
+                if (patchSchoolBoardReq.getPost_content().equals("")) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_CONTENT_NULL);
+                }
+                if (patchSchoolBoardReq.getPost_content().length() > 500) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_CONTENT_INVALID);
+                }
+            }
+
+            if (patchSchoolBoardReq.getPost_anonymity() != null) {
+                if (patchSchoolBoardReq.getPost_anonymity().equals("")) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_ANONYMITY_NULL);
+                }
+            }
+
+
             schoolBoardService.patchSchoolBoard(userIdx, postIdx, patchSchoolBoardReq);
 
             return new BaseResponse<>(PATCH_SCHOOL_BOARD_SUCCESS);
@@ -126,6 +187,7 @@ public class SchoolBoardController {
         }
     }
 
+
     /**
      * 게시판 댓글 추가
      * [POST] /board/school/:schoolNameIdx/comment/add/:postIdx
@@ -133,9 +195,20 @@ public class SchoolBoardController {
 
     @ResponseBody
     @PostMapping("/board/school/{schoolNameIdx}/comment/add/{postIdx}")
-    public BaseResponse<String> postSchoolBoard(@PathVariable("schoolNameIdx") int schoolNameIdx, @PathVariable("postIdx") int postIdx, @RequestBody PostSchoolBoardCommentReq postSchoolBoardCommentReq) {
+    public BaseResponse<String> postSchoolBoardComment(@PathVariable("schoolNameIdx") int schoolNameIdx, @PathVariable("postIdx") int postIdx, @RequestBody PostSchoolBoardCommentReq postSchoolBoardCommentReq) {
         try {
             int userIdx = jwtService.getUserIdx();
+
+            if (postSchoolBoardCommentReq.getComment_content() == null || postSchoolBoardCommentReq.getComment_content().equals("")) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_NULL);
+            }
+            if (postSchoolBoardCommentReq.getComment_content().length() > 100) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_INVALID);
+            }
+            if (postSchoolBoardCommentReq.getComment_anonymity() == null || postSchoolBoardCommentReq.getComment_anonymity().equals("")) {
+                return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_ANONYMITY_NULL);
+            }
+
             schoolBoardService.postSchoolBoardComment(userIdx, postIdx, postSchoolBoardCommentReq);
 
             return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_SUCCESS);
@@ -154,6 +227,21 @@ public class SchoolBoardController {
     public BaseResponse<String> patchSchoolBoardComment(@PathVariable("commentIdx") int commentIdx, @RequestBody PatchSchoolBoardCommentReq patchSchoolBoardCommentReq) {
         try {
             int userIdx = jwtService.getUserIdx();
+
+            if (patchSchoolBoardCommentReq.getComment_content() != null) {
+                if (patchSchoolBoardCommentReq.getComment_content().equals("")) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_NULL);
+                }
+                if (patchSchoolBoardCommentReq.getComment_content().length() > 100) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_INVALID);
+                }
+            }
+            if (patchSchoolBoardCommentReq.getComment_anonymity() != null) {
+                if (patchSchoolBoardCommentReq.getComment_anonymity().equals("")) {
+                    return new BaseResponse<>(POST_SCHOOL_BOARD_COMMENT_ANONYMITY_NULL);
+                }
+            }
+
             schoolBoardService.patchSchoolBoardComment(userIdx, commentIdx, patchSchoolBoardCommentReq);
 
             return new BaseResponse<>(PATCH_SCHOOL_BOARD_COMMENT_SUCCESS);

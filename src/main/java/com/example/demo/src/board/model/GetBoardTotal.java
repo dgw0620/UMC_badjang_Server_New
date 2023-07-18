@@ -8,11 +8,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 
-public class DeleteBoardReq {
-    private int post_idx;
-    private int user_idx;
-
-    public DeleteBoardReq(){}
+public class GetBoardTotal {
+    private String post_category;
+    private int school_name_idx;
 }
-
-
